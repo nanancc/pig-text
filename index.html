@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测测你是不是猪</title>
+  <!-- Tailwind CSS v3 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#FFB6C1', // 浅粉色
+            secondary: '#F5F5F5', // 浅灰色
+            accent: '#FF69B4', // 亮粉色
+          },
+          fontFamily: {
+            sans: ['Arial Rounded MT Bold', 'Avenir', 'Helvetica', 'Arial', 'sans-serif'],
+          },
+          animation: {
+            'bounce-slow': 'bounce 2s infinite',
+            'wiggle': 'wiggle 1s ease-in-out infinite',
+            'pulse-slow': 'pulse 3s infinite',
+          },
+          keyframes: {
+            wiggle: {
+              '0%, 100%': { transform: 'rotate(-3deg)' },
+              '50%': { transform: 'rotate(3deg)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .text-shadow {
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .text-shadow-lg {
+        text-shadow: 0 4px 8px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08);
+      }
+      .progress-ring-circle {
+        transition: stroke-dashoffset 0.35s;
+        transform: rotate(-90deg);
+        transform-origin: 50% 50%;
+      }
+    }
+    
+    body {
+      touch-action: none; /* 防止长按弹出菜单 */
+      user-select: none; /* 防止文本选择 */
+      -webkit-tap-highlight-color: transparent; /* 移除点击高亮 */
+    }
+    
+    .result-card {
+      transform-style: preserve-3d;
+      transition: transform 0.6s;
+    }
+    
+    .result-card.flipped {
+      transform: rotateY(180deg);
+    }
+    
+    .result-card-front, .result-card-back {
+      backface-visibility: hidden;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .result-card-back {
+      transform: rotateY(180deg);
+    }
+    
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
+    }
+    
+    .float-animation {
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    .progress-container {
+      position: relative;
+      width: 200px;
+      height: 200px;
+    }
+    
+    .progress-ring {
+      transform: rotate(-90deg);
+    }
+    
+    .progress-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    
+    .press-hint {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="bg-secondary min-h-screen flex flex-col items-center justify-center p-4">
+  <div class="container max-w-md mx-auto text-center">
+    <!-- 标题 -->
+    <h1 class="text-4xl md:text-5xl font-bold mb-6 text-primary text-shadow-lg">
+      测测你是不是猪 <span class="text-accent">🐷</span>
+    </h1>
+    
+    <!-- 主内容区 -->
+    <div class="bg-white rounded-3xl shadow-lg p-6 mb-8 transform transition-all duration-300 hover:shadow-xl">
+      <!-- 测试区域 -->
+      <div id="test-area" class="mb-6">
+        <div class="progress-container mx-auto">
+          <!-- 圆形进度条 -->
+          <svg class="progress-ring" width="200" height="200">
+            <circle
+              class="text-gray-200"
+              stroke-width="10"
+              stroke="currentColor"
+              fill="transparent"
+              r="85"
+              cx="100"
+              cy="100"
+            />
+            <circle
+              id="progress-circle"
+              class="text-primary progress-ring-circle"
+              stroke-width="10"
+              stroke="currentColor"
+              fill="transparent"
+              r="85"
+              cx="100"
+              cy="100"
+              stroke-dasharray="534.07"
+              stroke-dashoffset="534.07"
+            />
+          </svg>
+          
+          <!-- 长按提示 -->
+          <div id="press-hint" class="press-hint">
+            <div class="text-5xl mb-2">👇</div>
+            <p class="text-lg text-gray-600">长按这里测试</p>
+          </div>
+          
+          <!-- 进度文本 -->
+          <div id="progress-text" class="progress-text hidden">
+            <span id="progress-percentage">0%</span>
+          </div>
+        </div>
+        
+        <!-- 提示文字 -->
+        <p id="instruction" class="text-gray-600 mt-6">
+          长按屏幕中间区域，看看你是什么猪！
+        </p>
+      </div>
+      
+      <!-- 结果区域 (初始隐藏) -->
+      <div id="result-area" class="hidden">
+        <div class="bg-primary/10 rounded-2xl p-6 flex flex-col items-center justify-center h-64 mb-6">
+          <img id="result-emoji" class="w-24 h-24 mb-4 float-animation" src="image/pig.png" alt="猪">
+          <h2 id="result-title" class="text-2xl font-bold text-gray-800 mb-2">猪</h2>
+          <p id="result-description" class="text-gray-600">
+            你是一只可爱的小猪猪！
+          </p>
+        </div>
+        
+        <button id="retest-button" class="hidden bg-primary text-white py-2 px-6 rounded-full font-medium mb-4 hover:bg-primary/80 transition-colors">
+          重新测试
+        </button>
+        
+        <p class="text-gray-500 text-sm">
+          提示：结果已保存，刷新不会改变哦！
+        </p>
+      </div>
+    </div>
+    
+    <!-- 页脚 -->
+    <footer class="text-gray-500 text-sm">
+      <p>作者：nanan <span class="text-primary">🐽</span></p>
+    </footer>
+  </div>
+
+  <script>
+    // 结果数据
+    const pigResults = [
+      {
+        id: "human",
+        name: "人类",
+        emoji: "👤",
+        description: "检测不出猪元素，是人类吗？",
+        analysis: "你拥有人类的思维和情感，保持着理性和智慧。不过有时候适当放松一下，学学猪的简单快乐也不错哦！"
+      },
+      {
+        id: "pig",
+        name: "猪",
+        emoji: "🐷",
+        description: "普通小猪",
+        analysis: "你性格温和，喜欢简单的生活，容易满足。在别人眼中可能有些慵懒，但你知道如何享受生活的美好。"
+      },
+      {
+        id: "black-pig",
+        name: "小黑猪",
+        emoji: "🐖",
+        description: "小黑猪，卤出猪脚了",
+        analysis: "你有着独特的魅力，外表低调但内心丰富。黑色象征着神秘和深度，你的性格也像一本值得细细品味的书。"
+      },
+      {
+        id: "wild-boar",
+        name: "野猪",
+        emoji: "🐗",
+        description: "你是一只勇猛的野猪！",
+        analysis: "你性格刚强，充满活力和冒险精神。遇到困难从不轻易退缩，有着坚韧不拔的意志和强大的生存能力。"
+      },
+      {
+        id: "zhuge-liang",
+        name: "猪葛亮",
+        emoji: "🐷🧠",
+        description: "猪里最聪明的一个",
+        analysis: "你聪明绝顶，机智过人，有着非凡的智慧和谋略。在关键时刻总能想出解决问题的办法，是大家眼中的智多星。"
+      },
+      {
+        id: "pig-stamp",
+        name: "猪圆章",
+        emoji: "🐷🔴",
+        description: "《猪圈那些事》",
+        analysis: "你做事认真负责，注重细节，有着强烈的责任感。你的存在让周围的一切都变得更加有序和可靠。"
+      },
+      {
+        id: "zombie-pig",
+        name: "僵尸猪",
+        emoji: "🧟🐷",
+        description: "喜欢的食物是猪脑",
+        analysis: "你有着独特的个性和思维方式，常常让人捉摸不透。你的创造力和想象力丰富，总能带来意想不到的惊喜。"
+      },
+      {
+        id: "skeleton-pig",
+        name: "骷髅猪",
+        emoji: "💀🐷",
+        description: "资深不死族",
+        analysis: "你外表看起来有些冷酷，但内心温暖。你有着独特的审美和品味，喜欢追求个性和与众不同。"
+      },
+      {
+        id: "pig-human",
+        name: "猪人",
+        emoji: "🐷👤",
+        description: "你是猪还是人？",
+        analysis: "你兼具猪的可爱和人的智慧，能够在不同的环境中灵活适应。你有着丰富的情感和复杂的内心世界。"
+      },
+      {
+        id: "demon-pig",
+        name: "恶魔猪",
+        emoji: "😈🐷",
+        description: "满肚子坏心眼",
+        analysis: "你活泼好动，喜欢恶作剧，充满了恶作剧的精神。虽然有时候会让人头疼，但你的活力和幽默感也给周围带来了很多欢乐。"
+      },
+      {
+        id: "heaven-pig",
+        name: "天堂猪",
+        emoji: "😇🐷",
+        description: "似了喵~",
+        analysis: "你性格善良，心灵纯洁，总是愿意帮助他人。你的存在就像阳光一样温暖，给周围的人带来希望和力量。"
+      },
+      {
+        id: "explosive-pig",
+        name: "爆破小猪",
+        emoji: "💣🐷",
+        description: "我跟你爆了！",
+        analysis: "你精力充沛，热情似火，有着强烈的感染力。你的出现总能点燃周围的气氛，让一切变得更加活跃和有趣。"
+      },
+      {
+        id: "black-white-pig",
+        name: "黑白猪",
+        emoji: "⚫⚪🐷",
+        description: "串子",
+        analysis: "你有着矛盾而统一的性格，既有着严肃认真的一面，也有着活泼可爱的一面。你追求平衡和和谐，善于在不同的场合展现不同的自己。"
+      },
+      {
+        id: "pork-skewer",
+        name: "猪肉串",
+        emoji: "🍢",
+        description: "真正的串子",
+        analysis: "你性格开朗，善于与人交往，有着很强的亲和力。你就像美食一样，能够带给人满足和快乐，是大家都喜欢的对象。"
+      },
+      {
+        id: "magic-pig",
+        name: "魔法少猪",
+        emoji: "🪄🐷",
+        description: "马猪烧酒",
+        analysis: "你有着丰富的想象力和创造力，总是能够带给人惊喜和新鲜感。你的想法独特而有趣，常常能够启发他人的思维。"
+      },
+      {
+        id: "mechanical-pig",
+        name: "机械猪",
+        emoji: "🤖🐷",
+        description: "人机",
+        analysis: "你思维逻辑清晰，做事有条理，有着很强的分析和解决问题的能力。你喜欢追求效率和完美，是一个可靠的合作伙伴。"
+      },
+      {
+        id: "pig-ball",
+        name: "猪猪球",
+        emoji: "🏀🐷",
+        description: "滚了",
+        analysis: "你性格活泼好动，充满了青春活力，喜欢运动和挑战。你有着很强的适应能力，能够在不同的环境中保持积极向上的态度。"
+      },
+      {
+        id: "doll-pig",
+        name: "玩偶猪",
+        emoji: "🧸🐷",
+        description: "fufu小猪",
+        analysis: "你外表可爱，性格温柔，让人忍不住想要亲近和保护。你有着很强的治愈能力，能够带给人安慰和温暖。"
+      },
+      {
+        id: "soul-pig",
+        name: "灵魂猪",
+        emoji: "👻🐷",
+        description: "从冥界归来的猪",
+        analysis: "你有着丰富的内心世界和深刻的思想，喜欢思考人生的意义和价值。你追求精神上的满足和成长，是一个有深度的人。"
+      },
+      {
+        id: "crystal-pig",
+        name: "水晶猪",
+        emoji: "💎🐷",
+        description: "珍贵又脆弱的小猪",
+        analysis: "你有着纯洁透明的心灵和高雅的气质，就像水晶一样美丽而珍贵。你追求真善美，有着很高的道德标准和审美情趣。"
+      },
+      {
+        id: "snow-pig",
+        name: "雪猪",
+        emoji: "❄️🐷",
+        description: "洁白的雪猪",
+        analysis: "你性格纯真，心灵洁净，就像雪一样洁白无瑕。你有着独特的魅力和气质，让人忍不住想要接近和了解。"
+      },
+      {
+        id: "pig-cat",
+        name: "猪咪",
+        emoji: "🐷🐱",
+        description: "你是一只可爱的猪咪！",
+        analysis: "你兼具猪的可爱和猫的优雅，有着独特的魅力和个性。你既喜欢享受生活的美好，也有着自己的独立思想和主张。"
+      }
+    ];
+
+    // DOM 元素
+    const testArea = document.getElementById('test-area');
+    const resultArea = document.getElementById('result-area');
+    const progressCircle = document.getElementById('progress-circle');
+    const progressText = document.getElementById('progress-text');
+    const progressPercentage = document.getElementById('progress-percentage');
+    const pressHint = document.getElementById('press-hint');
+    const instruction = document.getElementById('instruction');
+    const resultEmoji = document.getElementById('result-emoji');
+    const resultTitle = document.getElementById('result-title');
+    const resultDescription = document.getElementById('result-description');
+    const retestButton = document.getElementById('retest-button');
+    
+    // 进度条参数
+    const circumference = 2 * Math.PI * 85; // 圆的周长
+    const requiredHoldTime = 3000; // 长按所需时间（毫秒）
+    let startTime = 0;
+    let isHolding = false;
+    let progressInterval;
+    
+    // 初始化进度条
+    progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+    progressCircle.style.strokeDashoffset = circumference;
+    
+    // 检查是否已有结果
+    let savedResult = null;
+    try {
+      savedResult = localStorage.getItem('pigTestResult');
+      if (savedResult) {
+        showResult(JSON.parse(savedResult));
+      }
+    } catch (error) {
+      console.error('读取本地存储失败:', error);
+      // 清除可能损坏的数据
+      localStorage.removeItem('pigTestResult');
+      savedResult = null;
+    }
+    
+    // 长按开始事件
+    function handleHoldStart(e) {
+      // 阻止默认行为
+      e.preventDefault();
+      
+      // 如果已有结果，不执行任何操作
+      if (localStorage.getItem('pigTestResult')) return;
+      
+      isHolding = true;
+      startTime = Date.now();
+      
+      // 显示进度条
+      progressText.classList.remove('hidden');
+      pressHint.classList.add('hidden');
+      instruction.textContent = '正在测试中...';
+      
+      // 开始更新进度条
+      progressInterval = setInterval(updateProgress, 30);
+      
+      // 添加视觉反馈
+      testArea.classList.add('scale-105');
+      testArea.style.transition = 'transform 0.2s';
+    }
+    
+    // 长按结束事件
+    function handleHoldEnd() {
+      // 如果已有结果，不执行任何操作
+      if (localStorage.getItem('pigTestResult')) return;
+      
+      isHolding = false;
+      clearInterval(progressInterval);
+      
+      // 重置进度条
+      resetProgress();
+      
+      // 恢复视觉效果
+      testArea.classList.remove('scale-105');
+      instruction.textContent = '将手指放到屏幕中间区域，长按汲取猪元素';
+    }
+    
+    // 更新进度条
+    function updateProgress() {
+      if (!isHolding) return;
+      
+      const elapsedTime = Date.now() - startTime;
+      const progress = Math.min(elapsedTime / requiredHoldTime, 1);
+      const offset = circumference - (progress * circumference);
+      
+      // 更新进度条
+      progressCircle.style.strokeDashoffset = offset;
+      
+      // 更新百分比文本
+      const percentage = Math.round(progress * 100);
+      progressPercentage.textContent = `${percentage}%`;
+      
+      // 如果达到100%，生成结果
+      if (progress >= 1) {
+        clearInterval(progressInterval);
+        generateResult();
+      }
+    }
+    
+    // 重置进度条
+    function resetProgress() {
+      clearInterval(progressInterval);
+      progressCircle.style.strokeDashoffset = circumference;
+      progressText.classList.add('hidden');
+      pressHint.classList.remove('hidden');
+      progressPercentage.textContent = '0%';
+    }
+    
+    // 生成随机结果
+    function generateResult() {
+      try {
+        // 播放完成音效
+        playSound('complete');
+        
+        // 随机选择一个结果
+        const randomIndex = Math.floor(Math.random() * pigResults.length);
+        const result = pigResults[randomIndex];
+        
+        // 保存结果到本地存储
+        localStorage.setItem('pigTestResult', JSON.stringify(result));
+        
+        // 显示结果
+        showResult(result);
+      } catch (error) {
+        console.error('生成结果失败:', error);
+        alert('生成结果失败，请重试！');
+        // 重置界面
+        resetProgress();
+        instruction.textContent = '长按屏幕中间区域，看看你是什么猪！';
+      }
+    }
+    
+    // 显示结果
+    function showResult(result) {
+      // 隐藏测试区域，显示结果区域
+      testArea.classList.add('hidden');
+      resultArea.classList.remove('hidden');
+      
+      // 设置结果内容
+      const imageSrc = `image/${result.id}.png`;
+      resultEmoji.src = imageSrc;
+      resultEmoji.alt = result.name;
+      resultTitle.textContent = result.name;
+      resultDescription.textContent = result.description;
+      
+      // 添加图片加载失败处理
+      resultEmoji.onerror = function() {
+        // 如果图片加载失败，使用默认图片
+        resultEmoji.src = 'image/pig.png';
+      };
+      
+      // 添加结果出现动画
+      resultArea.style.opacity = '0';
+      resultArea.style.transform = 'translateY(20px)';
+      resultArea.style.transition = 'opacity 0.5s, transform 0.5s';
+      
+      setTimeout(() => {
+        resultArea.style.opacity = '1';
+        resultArea.style.transform = 'translateY(0)';
+      }, 10);
+    }
+    
+    // 播放音效
+    function playSound(type) {
+      try {
+        // 创建音频上下文
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+        
+        // 创建振荡器
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        // 设置音效参数
+        if (type === 'complete') {
+          oscillator.type = 'sine';
+          oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+          oscillator.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+          oscillator.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // G5
+          
+          gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+          
+          oscillator.start(audioCtx.currentTime);
+          oscillator.stop(audioCtx.currentTime + 0.3);
+        }
+      } catch (error) {
+        console.error('播放音效失败:', error);
+        // 音效播放失败不影响主要功能
+      }
+    }
+    
+
+    
+    // 重新测试函数
+    function handleRetest() {
+      try {
+        // 清除本地存储结果
+        localStorage.removeItem('pigTestResult');
+        
+        // 重置进度条
+        resetProgress();
+        
+        // 显示测试区域，隐藏结果区域
+        testArea.classList.remove('hidden');
+        resultArea.classList.add('hidden');
+        
+        // 重置提示文字
+        instruction.textContent = '长按屏幕中间区域，看看你是什么猪！';
+      } catch (error) {
+        console.error('重新测试失败:', error);
+      }
+    }
+    
+    // 触摸事件监听
+    try {
+      const progressContainer = document.querySelector('.progress-container');
+      
+      if (progressContainer) {
+        progressContainer.addEventListener('mousedown', handleHoldStart);
+        progressContainer.addEventListener('touchstart', handleHoldStart);
+      }
+      
+      document.addEventListener('mouseup', handleHoldEnd);
+      document.addEventListener('touchend', handleHoldEnd);
+      document.addEventListener('touchcancel', handleHoldEnd);
+      
+      // 重新测试按钮事件监听
+      retestButton.addEventListener('click', handleRetest);
+    } catch (error) {
+      console.error('添加事件监听失败:', error);
+    }
+  </script>
+</body>
+</html>
