@@ -377,6 +377,7 @@
     let startTime = 0;
     let isHolding = false;
     let progressInterval;
+    let isGenerating = false; // 防止重复生成结果
     
     // 初始化进度条
     progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
@@ -400,13 +401,20 @@
     function handleHoldStart(e) {
       // 阻止默认行为
       e.preventDefault();
-      
+
+      // 如果已在长按状态，直接返回（防止多指触发多次）
+      if (isHolding) return;
+
       // 如果已有结果，不执行任何操作
       if (localStorage.getItem('pigTestResult')) return;
-      
+
+      // 清除可能存在的旧定时器
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+
       isHolding = true;
-      startTime = Date.now();
-      
+      startTime = Date.now();      
       // 显示进度条
       progressText.classList.remove('hidden');
       pressHint.classList.add('hidden');
@@ -467,27 +475,30 @@
       progressPercentage.textContent = '0%';
     }
     
-    // 生成随机结果
     function generateResult() {
+      // 防止重复生成
+      if (isGenerating) return;
+      isGenerating = true;
+
       try {
         // 播放完成音效
         playSound('complete');
-        
+
         // 随机选择一个结果
         const randomIndex = Math.floor(Math.random() * pigResults.length);
         const result = pigResults[randomIndex];
-        
+
         // 保存结果到本地存储
         localStorage.setItem('pigTestResult', JSON.stringify(result));
-        
+
         // 显示结果
         showResult(result);
       } catch (error) {
         console.error('生成结果失败:', error);
         alert('生成结果失败，请重试！');
-        // 重置界面
         resetProgress();
         instruction.textContent = '长按屏幕中间区域，看看你是什么猪！';
+        isGenerating = false; // 出错时重置状态
       }
     }
     
@@ -559,6 +570,8 @@
     // 重新测试函数
     function handleRetest() {
       try {
+        isGenerating = false; // 重置生成状态
+
         // 清除本地存储结果
         localStorage.removeItem('pigTestResult');
         
